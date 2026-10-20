@@ -302,10 +302,11 @@
       const sug = r.messages.find(m => m.suggest);
       const best = r.result && r.result.ranking[0], sel = r.result && r.result.selected;
       if (sug && best && best.score >= 0.75 && (!sel || sel.score <= best.score - 0.3)) {
-        if (note === 'PRJ') overridden = code;
         code = sug.suggest; note = '행정구역 대조';
       }
     }
+    // PRJ에 적힌 좌표계와 다른 것을 골랐다면 그 사실을 알린다
+    if (d.declared && d.declared.code && d.declared.code !== code) overridden = d.declared.code;
     return { code, swap, note, overridden };
   }
   function applyDefaultSrc() {
@@ -324,7 +325,7 @@
       state.adm = A.adminDiagnose(state.raw, state.dbfFields.map(f => f.name), src, swap);
       msgs = msgs.concat(state.adm.messages);
     } else msgs.push({ level: 'info', text: '행정구역 경계 데이터를 불러오는 중입니다…' });
-    if (state.overridden && !state.srcTouched) msgs.unshift({ level: 'warn', text: `PRJ에는 ${state.overridden}로 적혀 있지만, 속성의 행정구역과 대조한 결과에 따라 ${src}를 원본 좌표계로 선택했습니다.`, suggest: state.overridden, label: 'PRJ대로 되돌리기' });
+    if (state.overridden && !state.srcTouched) msgs.unshift({ level: 'warn', text: `PRJ에는 ${state.overridden}로 적혀 있지만, ${state.adm && state.adm.result && state.adm.result.selected && state.adm.result.selected.score >= 0.7 ? '속성의 행정구역 대조' : '좌표 위치(육지 비율)'} 결과에 따라 ${src}를 원본 좌표계로 선택했습니다.`, suggest: state.overridden, label: 'PRJ대로 되돌리기' });
     $('msgs').innerHTML = msgs.map(m => `<div class="msg ${m.level}">${esc(m.text)}${m.suggest && m.suggest !== src ? ` <button class="mini" data-apply="${m.suggest}">${m.label || m.suggest + ' 적용'}</button>` : ''}</div>`).join('');
     $('msgs').querySelectorAll('[data-apply]').forEach(b => b.onclick = () => { $('srcCrs').value = b.dataset.apply; state.srcTouched = true; onSrcChange(); });
     renderCands(); renderChecks();
